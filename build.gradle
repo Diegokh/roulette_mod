@@ -29,13 +29,13 @@ dependencies {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of("${java_version}")
+        languageVersion = JavaLanguageVersion.of("${21}")
     }
     withSourcesJar()
 }
 
 tasks.withType(JavaCompile).configureEach {
-    options.release = Integer.parseInt("${java_version}")
+    options.release = Integer.parseInt("${21}")
 }
 
 loom {

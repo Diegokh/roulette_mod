@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "roulette",
+  "version": "1.0.0",
+  "name": "Roulette Mod",
+  "description": "Sistema de ruleta con economía",
+  "authors": ["Diego"],
+  "contact": {
+    "sources": "https://tu-repo-o-web"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "dev.diego.roulette.RouletteMod"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.7",
+    "minecraft": "1.21.8",
+    "fabric-api": "*"
+  }
+}

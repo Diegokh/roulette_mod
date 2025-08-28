@@ -10,10 +10,10 @@ import dev.diego.roulette.table.RouletteManager;
 import dev.diego.roulette.table.RouletteTable;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,8 +31,6 @@ public class RouletteMod implements ModInitializer {
     public void onInitialize() {
         CFG = ConfigManager.init();
         RouletteManager.init();
-        RouletteTestCommands.register();
-
 
         // Inicializar economía cuando el servidor esté arrancado
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
@@ -73,7 +71,34 @@ public class RouletteMod implements ModInitializer {
                                 long c = EconomyService.getChips(p);
                                 p.sendMessage(Text.of("Tienes " + c + " fichas."), false);
                                 return 1;
-                            })))
+                            }))
+                            .then(literal("set")
+                                    .requires(src -> src.hasPermissionLevel(2))
+                                    .then(argument("cantidad", IntegerArgumentType.integer(0))
+                                            .executes(ctx -> {
+                                                ServerPlayerEntity p = ctx.getSource().getPlayer();
+                                                int cantidad = IntegerArgumentType.getInteger(ctx, "cantidad");
+                                                PlayerDataStorage.get((net.minecraft.server.world.ServerWorld) p.getWorld())
+                                                        .balances().put(p.getUuid(), (long) cantidad);
+                                                PlayerDataStorage.markDirtyStatic();
+                                                p.sendMessage(Text.of("Saldo establecido a " + cantidad + " fichas"), false);
+                                                return 1;
+                                            })))
+                            .then(literal("add")
+                                    .requires(src -> src.hasPermissionLevel(2))
+                                    .then(argument("delta", IntegerArgumentType.integer(Integer.MIN_VALUE, Integer.MAX_VALUE))
+                                            .executes(ctx -> {
+                                                ServerPlayerEntity p = ctx.getSource().getPlayer();
+                                                int delta = IntegerArgumentType.getInteger(ctx, "delta");
+                                                var storage = PlayerDataStorage.get((net.minecraft.server.world.ServerWorld) p.getWorld());
+                                                UUID u = p.getUuid();
+                                                long cur = storage.balances().getOrDefault(u, 0L);
+                                                long after = cur + delta;
+                                                storage.balances().put(u, after);
+                                                PlayerDataStorage.markDirtyStatic();
+                                                p.sendMessage(Text.of("Saldo modificado: " + cur + " → " + after + " fichas"), false);
+                                                return 1;
+                                            }))))
                     .then(literal("bet")
                             .then(literal("straight")
                                     .then(argument("numero", IntegerArgumentType.integer(1, 36))
@@ -125,6 +150,16 @@ public class RouletteMod implements ModInitializer {
                                                         placeBet(ctx.getSource().getServer(), p, BetType.LOW_HIGH, List.of(), l.toUpperCase(), amt);
                                                         return 1;
                                                     })))))
+            );
+
+            // Alias rápido /saldo
+            dispatcher.register(literal("saldo")
+                    .executes(ctx -> {
+                        ServerPlayerEntity p = ctx.getSource().getPlayer();
+                        long c = EconomyService.getChips(p);
+                        p.sendMessage(Text.of("Tienes " + c + " fichas."), false);
+                        return 1;
+                    })
             );
         });
     }
