@@ -2,9 +2,10 @@ package dev.diego.roulette.economy;
 
 import dev.diego.roulette.persist.PlayerDataStorage;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
@@ -14,9 +15,10 @@ public final class EconomyService {
     private static final Map<UUID, Long> CHIP_BALANCES = new HashMap<>();
     private static ConversionTable conversion;
 
-    public static void init() {
+    public static void init(MinecraftServer server) {
         conversion = ConversionTable.fromConfig();
-        PlayerDataStorage.load(CHIP_BALANCES);
+        ServerWorld world = server.getOverworld();
+        PlayerDataStorage.load(world, CHIP_BALANCES);
     }
 
     public static long getChips(ServerPlayerEntity p) {
@@ -25,23 +27,21 @@ public final class EconomyService {
 
     public static void addChips(ServerPlayerEntity p, long delta) {
         CHIP_BALANCES.merge(p.getUuid(), delta, Long::sum);
-        PlayerDataStorage.markDirty();
+        PlayerDataStorage.markDirtyStatic();
     }
 
     public static boolean trySpendChips(ServerPlayerEntity p, long amount) {
         long cur = getChips(p);
         if (cur < amount) return false;
         CHIP_BALANCES.put(p.getUuid(), cur - amount);
-        PlayerDataStorage.markDirty();
+        PlayerDataStorage.markDirtyStatic();
         return true;
     }
 
     public static void openBank(ServerPlayerEntity p) {
-        p.sendMessage(Text.of("Banco: usa /deposit [item] [cantidad] y /withdraw [chips] (temporal CLI)"), false);
-        // En la siguiente entrega: abrir Screen server-only (Polymer-friendly).
+        p.sendMessage(Text.of("Banco: usa /deposit [item] [cantidad] y /withdraw [chips]"), false);
     }
 
-    // CLI helpers (para demo completa sin GUI)
     public static void depositCli(ServerPlayerEntity p, String itemId, int amount) {
         Identifier id = Identifier.tryParse(itemId);
         if (id == null || !Registries.ITEM.containsId(id)) {
@@ -74,7 +74,6 @@ public final class EconomyService {
         p.sendMessage(Text.of("Retiro completado: " + mats), false);
     }
 
-    // Conversión fichas → materiales (greedy estable por orden config)
     public static Map<String, Integer> withdrawMaterials(long chipsToSpend) {
         Map<String, Integer> out = new LinkedHashMap<>();
         for (String id : conversion.sortedPayoutOrder()) {

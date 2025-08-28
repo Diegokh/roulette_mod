@@ -13,6 +13,7 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 
 import java.util.List;
 import java.util.UUID;
@@ -29,8 +30,12 @@ public class RouletteMod implements ModInitializer {
     @Override
     public void onInitialize() {
         CFG = ConfigManager.init();
-        EconomyService.init();
         RouletteManager.init();
+
+        // Inicializar economía cuando el servidor esté arrancado
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            EconomyService.init(server);
+        });
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, env) -> {
             dispatcher.register(literal("roulette")

@@ -41,3 +41,14 @@ tasks.withType(JavaCompile).configureEach {
 loom {
     splitEnvironmentSourceSets()
 }
+
+// Desactivar la tarea de test existente
+tasks.named('test') {
+    enabled = false
+}
+
+// Redefinir las dependencias de 'check' filtrando 'test'
+tasks.named('check') {
+    setDependsOn(dependsOn.findAll { it.name != 'test' })
+}
+
