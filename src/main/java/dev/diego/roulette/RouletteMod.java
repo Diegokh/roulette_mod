@@ -31,6 +31,8 @@ public class RouletteMod implements ModInitializer {
     public void onInitialize() {
         CFG = ConfigManager.init();
         RouletteManager.init();
+        RouletteTestCommands.register();
+
 
         // Inicializar economía cuando el servidor esté arrancado
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
